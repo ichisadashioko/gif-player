@@ -1,0 +1,4 @@
+*.swp
+*.gif
+.vs
+__pycache__
