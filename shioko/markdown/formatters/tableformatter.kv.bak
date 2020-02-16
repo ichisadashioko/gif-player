@@ -1,0 +1,21 @@
+#:kivy 1.11.1
+
+<TableFormatter>:
+
+    input_tb: input
+    output_tb: output
+
+    TextInput:
+        id: input
+        size: root.width / 2, root.height
+        pos: 0, 0
+        background_color: 0, 0, 0, 1
+        foreground_color: 1, 1, 1, 1
+
+    TextInput:
+        id: output
+        size: root.width / 2, root.height
+        pos: root.width / 2, 0
+        readonly: True
+        background_color: 0.1, 0.1, 0.1, 1
+        foreground_color: 1, 1, 1, 1

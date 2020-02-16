@@ -3,3 +3,7 @@
 .vs
 __pycache__
 .vscode
+.idea
+__init__.py
+
+node_modules
