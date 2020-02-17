@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/ichisadashioko/gif-player/issues"
   },
-  "homepage": "https://github.com/ichisadashioko/gif-player#readme"
+  "homepage": "https://github.com/ichisadashioko/gif-player#readme",
+  "dependencies": {
+    "electron": "^8.0.1"
+  }
 }
