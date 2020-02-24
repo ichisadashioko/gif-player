@@ -1,5 +1,6 @@
 *.swp
 *.gif
+*.out
 .vs
 __pycache__
 .vscode
