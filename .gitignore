@@ -2,6 +2,7 @@
 *.gif
 *.out
 .vs
+.ipynb_checkpoints
 __pycache__
 .vscode
 .idea
