@@ -3,6 +3,7 @@ import time
 import sys
 import argparse
 import io
+import struct
 
 
 # I store signatures in `bytes` for convenience in comparision.
