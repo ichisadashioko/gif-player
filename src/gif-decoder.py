@@ -626,8 +626,10 @@ class GIF:
 
                 if sub_type == GIF_GCE_EXT_LABEL:
                     # Graphic Control Extension
-                    # TODO
-                    pass
+                    block = GraphicControlExtension(self.stream.tell() - 2, self.stream)
+                    if block.broken:
+                        return
+                    self.blocks.append(block)
                 elif sub_type == GIF_COM_EXT_LABEL:
                     # Comment Extension
                     block = CommentExtensionBlock(self.stream.tell() - 2, self.stream)
@@ -642,8 +644,10 @@ class GIF:
                     self.blocks.append(block)
                 elif sub_type == GIF_APP_EXT_LABEL:
                     # Application Extension
-                    # TODO
-                    pass
+                    block = ApplicationExtensionBlock(self.stream.tell() - 2, self.stream)
+                    if block.broken:
+                        return
+                    self.blocks.append(block)
                 else:
                     # broken data
                     return
