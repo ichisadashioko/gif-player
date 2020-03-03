@@ -1,3 +1,9 @@
+import io
+import struct
+
+from constants import GIF_IMAGE_SEPARATOR
+from baseblock import BaseBlock
+
 
 class ImageDescriptorBlock(BaseBlock):
     def __init__(self, seek_index: int, stream: io.BufferedReader):

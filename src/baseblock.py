@@ -1,3 +1,5 @@
+import io
+
 
 class BaseBlock:
     def __init__(self, seek_index: int):

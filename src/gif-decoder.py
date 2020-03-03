@@ -5,6 +5,9 @@ import argparse
 import io
 import struct
 
+from constants import *
+from applicationblock import ApplicationExtensionBlock
+
 
 class GIF:
     def __init__(self, stream: io.BufferedReader):

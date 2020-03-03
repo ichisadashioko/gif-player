@@ -1,6 +1,9 @@
 import io
 import struct
 
+from constants import GIF_EXTENSION_INTRODUCER, GIF_TXT_EXT_LABEL
+from baseblock import BaseBlock
+
 
 class PlainTextExtensionBlock(BaseBlock):
     def __init__(self, seek_index: int, stream: io.BufferedReader):

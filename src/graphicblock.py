@@ -1,3 +1,9 @@
+import io
+import struct
+
+from constants import GIF_EXTENSION_INTRODUCER, GIF_GCE_EXT_LABEL
+from baseblock import BaseBlock
+
 
 class GraphicControlExtension(BaseBlock):
     def __init__(self, seek_index: int, stream: io.BufferedReader):
@@ -82,4 +88,3 @@ class GraphicControlExtension(BaseBlock):
             return
 
         self.broken = False
-
