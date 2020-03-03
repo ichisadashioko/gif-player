@@ -29,9 +29,9 @@ class BaseBlock:
                 break
 
             # 2. Expect Sub Block data
-            block = self._read(block_size)
+            block = self._read(stream, block_size)
             sub_blocks.append(block)
             if len(block) != block_size:
                 break
 
-        return sub_block, broken
+        return sub_blocks, broken
