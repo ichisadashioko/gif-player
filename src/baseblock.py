@@ -3,6 +3,7 @@ import io
 
 class BaseBlock:
     def __init__(self, seek_index: int):
+        print(f'Starting to parse {self.__class__.__name__} at {seek_index}.')
         self.seek_index = seek_index
         self.broken = True
         self.broken_reason = 'The stream has not been processed!'

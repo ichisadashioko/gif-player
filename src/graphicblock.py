@@ -7,7 +7,6 @@ from baseblock import BaseBlock
 
 class GraphicControlExtension(BaseBlock):
     def __init__(self, seek_index: int, stream: io.BufferedReader):
-        print(f'Starting to parse {self.__class__.__name__} at {seek_index}.')
         super().__init__(seek_index)
         self.delay_time = 0
         self.transparent_color = 0

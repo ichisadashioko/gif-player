@@ -19,7 +19,6 @@ class CommentExtensionBlock(BaseBlock):
             block_size: The length of this block data. Should check with the `broken` attribute first.
             data: All the sub-blocks data (in bytes).
         """
-        print(f'Starting to parse {self.__class__.__name__} at {seek_index}.')
         super().__init__(seek_index)
         self.comment_data = []
 

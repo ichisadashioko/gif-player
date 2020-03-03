@@ -7,6 +7,10 @@ import struct
 
 from constants import *
 from applicationblock import ApplicationExtensionBlock
+from commentblock import CommentExtensionBlock
+from graphicblock import GraphicControlExtension
+from imageblock import ImageDescriptorBlock
+from textblock import PlainTextExtensionBlock
 
 
 class GIF:
@@ -39,6 +43,7 @@ class GIF:
 
         if len(sig) != 6:
             # broken data
+            print(f'Signature is too short')
             return
 
         if sig != gif89a_sig:
@@ -50,6 +55,7 @@ class GIF:
         bs = self.stream.read(2)
         if len(bs) != 2:
             # broken data
+            print(f'Lacking 2 bytes for Screen Width')
             return
 
         self.width = struct.unpack('<h', bs)[0]
@@ -58,6 +64,7 @@ class GIF:
         bs = self.stream.read(2)
         if len(bs) != 2:
             # broken data
+            print(f'Lacking 2 bytes for Screen Height')
             return
 
         self.height = struct.unpack('<h', bs)[0]
@@ -65,6 +72,7 @@ class GIF:
         # 4. Expect Packed Fields
         bs = self.stream.read(1)
         if len(bs) != 1:
+            print(f'Lacking packed fields')
             # broken data
             return
 
@@ -87,6 +95,7 @@ class GIF:
         bs = self.stream.read(1)
         if len(bs) != 1:
             # broken data
+            print(f'Lacking background color')
             return
 
         self.background = bs[0]
@@ -115,6 +124,7 @@ class GIF:
                 # 10. Expect extension type
                 bs = self.stream.read(1)
                 if len(bs) != 1:
+                    print(f'Lacking extension label')
                     # broken data
                     return
 
@@ -146,6 +156,7 @@ class GIF:
                         return
                     self.blocks.append(block)
                 else:
+                    print(f'Unknown extension label')
                     # broken data
                     return
             elif block_type == GIF_IMAGE_SEPARATOR:
@@ -183,11 +194,6 @@ def main():
 
     with open(args.infile, mode='rb') as stream:
         gif = GIF(stream)
-
-    # infile = 'E:/gif-player/giphy.gif'
-
-    # with open(infile, mode='rb') as stream:
-    #     gif = GIF(stream)
 
     return 0
 
