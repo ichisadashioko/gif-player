@@ -47,13 +47,13 @@ class ApplicationExtensionBlock(BaseBlock):
             return
 
         # 4. Expect Application Identifier (8 bytes)
-        bs = self._read(stream)
+        bs = self._read(stream, 8)
         if len(bs) != 8:
             return
         self.identifer = bs
 
         # 5. Expect Application Authentication Code (3 bytes)
-        bs = self._read(stream)
+        bs = self._read(stream, 3)
         if len(bs) != 3:
             return
         self.auth_code = bs
