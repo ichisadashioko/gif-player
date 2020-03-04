@@ -20,8 +20,6 @@ class GIF:
 
         # all extension blocks
         self.blocks = []
-        # all images
-        self.images = []
         self.width = 0
         self.height = 0
         self.global_palette_flag = False
@@ -164,7 +162,7 @@ class GIF:
                 image = ImageDescriptorBlock(self.stream.tell() - 1, self.stream)
                 if image.broken:
                     return
-                self.images.append(image)
+                self.blocks.append(image)
             else:
                 break
 
@@ -173,8 +171,8 @@ class GIF:
     def load_global_palette(self):
         self.stream.seek(self.global_palette_seek_pos)
 
-        bs = stream.read(self.global_palette_size)
-        palette = [[*bs[i:i + 3]] for i in range(0, self.local_palette_size, 3)]
+        bs = self.stream.read(self.global_palette_size)
+        palette = [[*bs[i:i + 3]] for i in range(0, self.global_palette_size, 3)]
         return palette
 
 

@@ -17,6 +17,7 @@ class ImageDescriptorBlock(BaseBlock):
         self.interlace_flag = False
         self.local_palette_size = 0
         self.local_palette_seek_pos = 0
+        self.compressed_data = None
 
         self._process_data_stream(stream)
 
@@ -124,6 +125,7 @@ class ImageDescriptorBlock(BaseBlock):
         print(f'data type: {type(compressed_data)}')
         code_table = {}
         code = compressed_data
+        self.compressed_data = compressed_data
 
         self.broken = False
 

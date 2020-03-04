@@ -54,3 +54,9 @@ We continue by reading the next index into K. [Step 3]. Now K is 1 and the index
 The next index in the index stream is yet another  1. This our new K [Step 5]. Now the index buffer plus K is (1,1,1) which we do not have a code for in our code table. As we did before, we define a new code and add it to the code table. The next code would be #7; thus #7 = (1,1,1). Now we kick out the code for just the values in the index buffer(#6 = (1,1)) to the code stream and set the index buffer to K. [Step 6].
 
 As you can see we dynamically built many new codes for our code table as we compressed the data. For large files this can turn into a large number of codes. It turns out that the GIF format specifies a maximum code of #4095 (this happens to be the largest 12-bit number). If you want to use a new code. you have to clear out all of your old codes. You do this by sending the clear code (which for our sample was the #4). This tells the decoder that you are re-initializing  your code table and it should too. Then you start building your own codes again starting just after the value of your end-of-information code (in our sample, we would start again at #6).
+
+# LZW Decompression
+
+At some point we will probably need to turn this code stream back into a picture. To do this, we only need to know the values in the stream and the size of the color table that was used. That's it. You remember that big code table we built during compression? We actually have enough information in the code stream itself to be able to rebuilt it.
+
+Again, I'll list the algorithm and then we will walk though an example. Let me define a few terms I will be using. `CODE` will be the current code we're working with. `CODE-1` will be the code just before `CODE` in the code stream.
