@@ -123,8 +123,6 @@ class ImageDescriptorBlock(BaseBlock):
         # TODO Extract LZW compressed Image Data
         compressed_data = b''.join(compressed_data)
         print(f'data type: {type(compressed_data)}')
-        code_table = {}
-        code = compressed_data
         self.compressed_data = compressed_data
 
         self.broken = False
