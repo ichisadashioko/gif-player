@@ -60,3 +60,16 @@ As you can see we dynamically built many new codes for our code table as we comp
 At some point we will probably need to turn this code stream back into a picture. To do this, we only need to know the values in the stream and the size of the color table that was used. That's it. You remember that big code table we built during compression? We actually have enough information in the code stream itself to be able to rebuilt it.
 
 Again, I'll list the algorithm and then we will walk though an example. Let me define a few terms I will be using. `CODE` will be the current code we're working with. `CODE-1` will be the code just before `CODE` in the code stream.
+
+
+# Steps from specification
+
+The conversion of the image from a series of pixel values to a transmitted or stored character stream involves several steps. In brief these steps are:
+
+1. Establish the Code Size - Define the number of bits needed to represent the actual data.
+
+2. Compress the Data - Compress the series of image pixels to a series of compression codes.
+
+3. Build a Series of Bytes - Take the set of compression codes and convert to a string of 8-bit bytes.
+
+4. Package the Bytes - Package sets of bytes into blocks preceded by character counts and output.
