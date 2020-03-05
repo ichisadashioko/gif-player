@@ -93,7 +93,7 @@ class ImageDescriptorBlock(BaseBlock):
         # skip Reserved field (2 bits)
 
         local_palette_size = fields & 0b00000111
-        # the actual size is calculated with this formular
+        # the actual size is calculated with this formula
         self.local_palette_size = 3 * (2 ** (local_palette_size + 1))
 
         if self.local_palette_flag == 1:
@@ -122,8 +122,109 @@ class ImageDescriptorBlock(BaseBlock):
 
         # TODO Extract LZW compressed Image Data
         compressed_data = b''.join(compressed_data)
-        print(f'data type: {type(compressed_data)}')
         self.compressed_data = compressed_data
+
+        code_stream = []
+
+        num_bits = self.lzw_min_code_size + 1
+
+        clear_code = 2 ** self.lzw_min_code_size
+        eoi_code = clear_code + 1
+
+        # index for compressed stream
+        i = 0
+        remain_bits_from_current_byte = 0
+
+        # every loop will retrieve a code and append it to the code_stream
+        while True and (i < len(self.compressed_data)):
+            value = 0
+            remain_bits_for_this_value = num_bits
+
+            while remain_bits_for_this_value != 0:
+                if remain_bits_from_current_byte == 0:
+                    b = self.compressed_data[i]
+                    remain_bits_from_current_byte = 8
+                    i += 1
+
+                if remain_bits_for_this_value >= remain_bits_from_current_byte:
+                    value = value << (num_bits - remain_bits_for_this_value)
+                    value += b
+                    remain_bits_for_this_value -= remain_bits_from_current_byte
+                    remain_bits_from_current_byte = 0
+                else:
+                    value = value << remain_bits_for_this_value
+                    temp_value = b >> (remain_bits_from_current_byte - remain_bits_for_this_value)
+                    value += temp_value
+                    remain_bits_from_current_byte -= remain_bits_for_this_value
+                    remain_bits_for_this_value = 0
+
+                # subtract value from b
+                b = b << (8 - remain_bits_from_current_byte)
+                b = b & 0xff
+                b = b >> (8 - remain_bits_from_current_byte)
+
+            code_stream.append(value)
+
+            if value >= (2**(num_bits) - 1):
+                num_bits += 1
+            if value == eoi_code:
+                # TODO Should we just break here?
+                break
+
+        # decode LZW code stream
+        # index for code stream
+        i = 0
+        # the first code should be clear code
+        if code_stream[i] != clear_code:
+            self.broken = True
+            self.broken_reason = f'The first code ({code_stream[i]}) does equal clear code ({clear_code})!'
+        i += 1
+
+        # initialize code table
+        code_table = {f'{x}': [x] for x in range(clear_code)}
+        next_code_table_key = eoi_code + 1
+        index_stream = []
+
+        # let CODE be the first code in the code stream
+        code = code_stream[i]
+        i += 1
+        # output {CODE} to index stream
+        index_stream.extend(code_table[f'{code}'])
+
+        while True and (i < len(code_stream)):
+            #  let CODE be the next code in the code stream
+            code = code_stream[i]
+            i += 1
+
+            if code == eoi_code:
+                break
+            if code == clear_code:
+                # TODO re-initialize code table
+                continue
+
+            # is CODE in the code table?
+            code_key = f'{code}'
+            if code_key in code_table:
+                # yes
+                # output {CODE} to index stream
+                index_stream.extend(code_table[code_key])
+                # let K be the first index in {CODE}
+                k = code_table[code_key][0]
+                # add {CODE-1}+K to code table
+                code_table[f'{next_code_table_key}'] = [*code_table[f'{code_stream[i-1]}'], k]
+                next_code_table_key += 1
+            else:
+                # no
+                # let K be the first index of {CODE-1}
+                k = code_table[f'{code_stream[i-1]}'][0]
+                # output {CODE-1}+K to index stream
+                temp_indies = [*code_table[f'{code_stream[i-1]}'], k]
+                index_stream.extend(temp_indies)
+                # add {CODE-1}+K to code table
+                code_table[f'{next_code_table_key}'] = temp_value
+                next_code_table_key += 1
+
+        self.index_stream = index_stream
 
         self.broken = False
 
