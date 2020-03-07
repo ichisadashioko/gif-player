@@ -5,6 +5,59 @@ from constants import GIF_IMAGE_SEPARATOR
 from baseblock import BaseBlock
 
 
+class BitReader:
+    def __init__(self, data: bytes, num_bits: int):
+        self.data = data
+        self.index = 0
+        self.init_num_bits = num_bits
+        self.num_bits = self.init_num_bits
+        self.ended = False
+
+        self.buffer = self.data[self.index]
+        self.remain_bits_from_current_byte = 8
+        self.index += 1
+
+    def _next(self):
+        if self.index < len(self.data):
+            self.buffer = self.data[self.index]
+            self.index += 1
+            self.remain_bits_from_current_byte = 8
+        else:
+            self.ended = True
+            self.buffer = 0
+            print(f'Ran out of data!')
+
+    def reset(self):
+        self.num_bits = self.init_num_bits
+
+    def read(self):
+        value = 0
+        remain_bits_for_this_value = self.num_bits
+
+        while remain_bits_for_this_value != 0:
+            if self.remain_bits_from_current_byte == 0:
+                self._next()
+
+            if remain_bits_for_this_value >= self.remain_bits_from_current_byte:
+                value += (self.buffer << (self.num_bits - remain_bits_for_this_value))
+                remain_bits_for_this_value -= self.remain_bits_from_current_byte
+                self.remain_bits_from_current_byte = 0
+            else:
+                temp_value = self.buffer << (8 - remain_bits_for_this_value)
+                temp_value = temp_value & 0xff
+                temp_value = temp_value >> (8 - remain_bits_for_this_value)
+                temp_value = temp_value << (self.num_bits - remain_bits_for_this_value)
+                value += temp_value
+
+                # subtract taken value from buffer
+                self.buffer = self.buffer >> remain_bits_for_this_value
+                self.remain_bits_from_current_byte -= remain_bits_for_this_value
+
+                remain_bits_for_this_value = 0
+
+        return value
+
+
 class ImageDescriptorBlock(BaseBlock):
     def __init__(self, seek_index: int, stream: io.BufferedReader):
         super().__init__(seek_index)
@@ -135,60 +188,17 @@ class ImageDescriptorBlock(BaseBlock):
         # hhhhhggg
 
         num_bits = self.lzw_min_code_size + 1
+        bit_reader = BitReader(self.compressed_data, num_bits)
 
         clear_code = 2 ** self.lzw_min_code_size
         eoi_code = clear_code + 1
 
-        # index for compressed stream
-        i = 0
-        remain_bits_from_current_byte = 0
-
-        # every loop will retrieve a code and append it to the code_stream
-        while True and (i < len(self.compressed_data)):
-            value = 0
-            remain_bits_for_this_value = num_bits
-            print('num_bits:', num_bits)
-
-            while remain_bits_for_this_value != 0:
-                if remain_bits_from_current_byte == 0:
-                    b = self.compressed_data[i]
-                    remain_bits_from_current_byte = 8
-                    i += 1
-
-                if remain_bits_for_this_value >= remain_bits_from_current_byte:
-                    value += (b << (num_bits - remain_bits_for_this_value))
-                    remain_bits_for_this_value -= remain_bits_from_current_byte
-                    remain_bits_from_current_byte = 0
-                else:
-                    temp_value = b << (8 - remain_bits_for_this_value)
-                    temp_value = temp_value & 0xff
-                    temp_value = temp_value >> (8 - remain_bits_for_this_value)
-                    temp_value = temp_value << (num_bits - remain_bits_for_this_value)
-                    value += temp_value
-
-                    # subtract taken value from b
-                    b = b >> remain_bits_for_this_value
-                    remain_bits_from_current_byte -= remain_bits_for_this_value
-
-                    remain_bits_for_this_value = 0
-
-            code_stream.append(value)
-            print(code_stream)
-
-            if value >= (2**(num_bits) - 1):
-                num_bits += 1
-            if value == eoi_code:
-                # TODO Should we just break here?
-                break
-
         # decode LZW code stream
-        # index for code stream
-        i = 0
         # the first code should be clear code
-        if code_stream[i] != clear_code:
+        code = bit_reader.read()
+        if code != clear_code:
             self.broken = True
-            self.broken_reason = f'The first code ({code_stream[i]}) does not equal clear code ({clear_code})!'
-        i += 1
+            self.broken_reason = f'The first code ({code}) does not equal clear code ({clear_code})!'
 
         index_stream = []
 
@@ -198,9 +208,10 @@ class ImageDescriptorBlock(BaseBlock):
         code_table.append([clear_code])
         code_table.append([eoi_code])
 
+        code_table_limit = (1 << bit_reader.num_bits) - 1
+
         # let CODE be the first code in the code stream
-        code = code_stream[i]
-        i += 1
+        code = bit_reader.read()
 
         if not code < clear_code:
             self.broken_reason = f'The first code in the code stream is out of range ({code} vs {clear_code})!'
@@ -209,20 +220,20 @@ class ImageDescriptorBlock(BaseBlock):
         # output {CODE} to index stream
         index_stream.extend(code_table[code])
 
-        while True and (i < len(code_stream)):
+        while True:
             previous_code = code
 
             #  let CODE be the next code in the code stream
-            code = code_stream[i]
-            i += 1
+            code = bit_reader.read()
 
             if code == eoi_code:
                 break
             if code == clear_code:
                 # re-initialize code table
                 code_table = code_table[:eoi_code + 1]
-                code = code_stream[i]
-                i += 1
+                bit_reader.reset()
+                code_table_limit = (1 << bit_reader.num_bits) - 1
+                code = bit_reader.read()
                 index_stream.append(code)
                 continue
 
@@ -247,6 +258,14 @@ class ImageDescriptorBlock(BaseBlock):
 
                 # add {CODE-1}+K to code table
                 code_table.append(indices)
+
+            if (len(code_table) > code_table_limit) and (bit_reader.num_bits < 12):
+                bit_reader.num_bits += 1
+                code_table_limit = (1 << bit_reader.num_bits) - 1
+
+            if bit_reader.ended:
+                print(f'There is no End of Information code!')
+                break
 
         self.index_stream = index_stream
         if not len(self.index_stream) == (self.width * self.height):
