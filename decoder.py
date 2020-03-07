@@ -5,6 +5,9 @@ import argparse
 import io
 import struct
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 from constants import *
 from applicationblock import ApplicationExtensionBlock
 from commentblock import CommentExtensionBlock
@@ -132,25 +135,28 @@ class GIF:
                     # Graphic Control Extension
                     block = GraphicControlExtension(self.stream.tell() - 2, self.stream)
                     if block.broken:
-                        print(f'{block.__class__.__name__} is broken.')
+                        print(block.broken_reason)
                         return
                     self.blocks.append(block)
                 elif sub_type == GIF_COM_EXT_LABEL:
                     # Comment Extension
                     block = CommentExtensionBlock(self.stream.tell() - 2, self.stream)
                     if block.broken:
+                        print(block.broken_reason)
                         return
                     self.blocks.append(block)
                 elif sub_type == GIF_TXT_EXT_LABEL:
                     # Plain Text Extension
                     block = PlainTextExtensionBlock(self.stream.tell() - 2, self.stream)
                     if block.broken:
+                        print(block.broken_reason)
                         return
                     self.blocks.append(block)
                 elif sub_type == GIF_APP_EXT_LABEL:
                     # Application Extension
                     block = ApplicationExtensionBlock(self.stream.tell() - 2, self.stream)
                     if block.broken:
+                        print(block.broken_reason)
                         return
                     self.blocks.append(block)
                 else:
@@ -161,8 +167,25 @@ class GIF:
                 # Image Descriptor
                 image = ImageDescriptorBlock(self.stream.tell() - 1, self.stream)
                 if image.broken:
+                    print(image.broken_reason)
                     return
                 self.blocks.append(image)
+
+                # save seek position
+                current_pos = self.stream.tell()
+
+                if image.local_palette_flag == 1:
+                    palette = image.load_local_palette(self.stream)
+                else:
+                    palette = self.load_global_palette()
+
+                # restore seek position
+                self.stream.seek(current_pos)
+
+                img = [palette[i] for i in image.index_stream]
+                img = [img[i:i + image.width] for i in range(0, len(image.index_stream), image.width)]
+                plt.imshow(img)
+                plt.show()
             else:
                 break
 

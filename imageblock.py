@@ -17,7 +17,8 @@ class ImageDescriptorBlock(BaseBlock):
         self.interlace_flag = False
         self.local_palette_size = 0
         self.local_palette_seek_pos = 0
-        self.compressed_data = None
+        self.compressed_data = []
+        self.index_stream = []
 
         self._process_data_stream(stream)
 
@@ -177,21 +178,31 @@ class ImageDescriptorBlock(BaseBlock):
         # the first code should be clear code
         if code_stream[i] != clear_code:
             self.broken = True
-            self.broken_reason = f'The first code ({code_stream[i]}) does equal clear code ({clear_code})!'
+            self.broken_reason = f'The first code ({code_stream[i]}) does not equal clear code ({clear_code})!'
         i += 1
 
-        # initialize code table
-        code_table = {f'{x}': [x] for x in range(clear_code)}
-        next_code_table_key = eoi_code + 1
         index_stream = []
+
+        # initialize code table
+        code_table = [[x] for x in range(clear_code)]
+        # Pad clear_code and eoi_code
+        code_table.append([clear_code])
+        code_table.append([eoi_code])
 
         # let CODE be the first code in the code stream
         code = code_stream[i]
         i += 1
+
+        if not code < clear_code:
+            self.broken_reason = f'The first code in the code stream is out of range ({code} vs {clear_code})!'
+            return
+
         # output {CODE} to index stream
-        index_stream.extend(code_table[f'{code}'])
+        index_stream.extend(code_table[code])
 
         while True and (i < len(code_stream)):
+            previous_code = code
+
             #  let CODE be the next code in the code stream
             code = code_stream[i]
             i += 1
@@ -199,32 +210,39 @@ class ImageDescriptorBlock(BaseBlock):
             if code == eoi_code:
                 break
             if code == clear_code:
-                # TODO re-initialize code table
+                # re-initialize code table
+                code_table = code_table[:eoi_code + 1]
+                code = code_stream[i]
+                i += 1
+                index_stream.append(code)
                 continue
 
             # is CODE in the code table?
-            code_key = f'{code}'
-            if code_key in code_table:
+            if code < len(code_table):
                 # yes
                 # output {CODE} to index stream
-                index_stream.extend(code_table[code_key])
+                index_stream.extend(code_table[code])
                 # let K be the first index in {CODE}
-                k = code_table[code_key][0]
+                k = code_table[code][0]
                 # add {CODE-1}+K to code table
-                code_table[f'{next_code_table_key}'] = [*code_table[f'{code_stream[i-1]}'], k]
-                next_code_table_key += 1
+                indices = [*code_table[previous_code], k]
+                code_table.append(indices)
             else:
                 # no
                 # let K be the first index of {CODE-1}
-                k = code_table[f'{code_stream[i-1]}'][0]
+                k = code_table[previous_code][0]
+
                 # output {CODE-1}+K to index stream
-                temp_indies = [*code_table[f'{code_stream[i-1]}'], k]
-                index_stream.extend(temp_indies)
+                indices = [*code_table[previous_code], k]
+                index_stream.extend(indices)
+
                 # add {CODE-1}+K to code table
-                code_table[f'{next_code_table_key}'] = temp_value
-                next_code_table_key += 1
+                code_table.append(indices)
 
         self.index_stream = index_stream
+        if not len(self.index_stream) == (self.width * self.height):
+            self.broken_reason = f'Not enough image data! {len(self.index_stream)}/{self.width * self.height}'
+            return
 
         self.broken = False
 
