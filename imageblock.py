@@ -127,6 +127,13 @@ class ImageDescriptorBlock(BaseBlock):
 
         code_stream = []
 
+        # Sample 5 bits each pixel index
+        # bbbaaaaa
+        # dcccccbb
+        # eeeedddd
+        # ggfffffe
+        # hhhhhggg
+
         num_bits = self.lzw_min_code_size + 1
 
         clear_code = 2 ** self.lzw_min_code_size
@@ -140,6 +147,7 @@ class ImageDescriptorBlock(BaseBlock):
         while True and (i < len(self.compressed_data)):
             value = 0
             remain_bits_for_this_value = num_bits
+            print('num_bits:', num_bits)
 
             while remain_bits_for_this_value != 0:
                 if remain_bits_from_current_byte == 0:
@@ -148,23 +156,24 @@ class ImageDescriptorBlock(BaseBlock):
                     i += 1
 
                 if remain_bits_for_this_value >= remain_bits_from_current_byte:
-                    value = value << (num_bits - remain_bits_for_this_value)
-                    value += b
+                    value += (b << (num_bits - remain_bits_for_this_value))
                     remain_bits_for_this_value -= remain_bits_from_current_byte
                     remain_bits_from_current_byte = 0
                 else:
-                    value = value << remain_bits_for_this_value
-                    temp_value = b >> (remain_bits_from_current_byte - remain_bits_for_this_value)
+                    temp_value = b << (8 - remain_bits_for_this_value)
+                    temp_value = temp_value & 0xff
+                    temp_value = temp_value >> (8 - remain_bits_for_this_value)
+                    temp_value = temp_value << (num_bits - remain_bits_for_this_value)
                     value += temp_value
+
+                    # subtract taken value from b
+                    b = b >> remain_bits_for_this_value
                     remain_bits_from_current_byte -= remain_bits_for_this_value
+
                     remain_bits_for_this_value = 0
 
-                # subtract value from b
-                b = b << (8 - remain_bits_from_current_byte)
-                b = b & 0xff
-                b = b >> (8 - remain_bits_from_current_byte)
-
             code_stream.append(value)
+            print(code_stream)
 
             if value >= (2**(num_bits) - 1):
                 num_bits += 1
