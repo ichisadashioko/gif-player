@@ -10,3 +10,5 @@ __init__.py
 
 node_modules
 package-lock.json
+refs
+kivy_venv
